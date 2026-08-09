@@ -4,447 +4,49 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#5b5ce2" />
-    <title>Zuno Chat | Real-time Messaging</title>
-    <style>
-      :root {
-        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-        background: #eef0f8;
-        color: #182033;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        min-height: 100dvh;
-        margin: 0;
-        display: grid;
-        place-items: center;
-        padding: 20px;
-      }
-      button,
-      input {
-        font: inherit;
-      }
-      .chat-app {
-        width: min(100%, 760px);
-        height: min(760px, calc(100dvh - 40px));
-        min-height: 420px;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        overflow: hidden;
-        border: 1px solid #dfe2ef;
-        border-radius: 24px;
-        background: #fff;
-        box-shadow: 0 20px 60px rgba(31, 42, 85, 0.14);
-      }
-      .chat-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px 20px;
-        border-bottom: 1px solid #eceef5;
-      }
-      .avatar {
-        width: 42px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        flex: none;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #7879f1, #4849bd);
-        color: #fff;
-        font-weight: 800;
-      }
-      .chat-title {
-        margin: 0;
-        font-size: 1rem;
-      }
-      .chat-status {
-        margin: 3px 0 0;
-        color: #6e7790;
-        font-size: 0.78rem;
-      }
-      .status-dot {
-        color: #29b774;
-      }
-      .header-actions {
-        margin-left: auto;
-      }
-      .clear-button {
-        border: 0;
-        border-radius: 8px;
-        padding: 8px 10px;
-        background: #f0f1f7;
-        color: #505974;
-        cursor: pointer;
-        font-size: 0.78rem;
-        font-weight: 700;
-      }
-      .messages {
-        min-height: 0;
-        margin: 0;
-        padding: 22px clamp(14px, 4vw, 28px);
-        overflow-y: auto;
-        list-style: none;
-        background: linear-gradient(#fafbff, #f4f6fc);
-      }
-      .message-row {
-        display: flex;
-        margin: 0 0 14px;
-      }
-      .message-row.sent {
-        justify-content: flex-end;
-      }
-      .message-row.received {
-        justify-content: flex-start;
-      }
-      .message-bubble {
-        max-width: min(78%, 500px);
-        padding: 10px 13px 8px;
-        border-radius: 18px;
-        overflow-wrap: anywhere;
-        line-height: 1.4;
-        font-size: 0.95rem;
-      }
-      .received .message-bubble {
-        border-bottom-left-radius: 4px;
-        background: #e5e8f2;
-        color: #252c3e;
-      }
-      .sent .message-bubble {
-        border-bottom-right-radius: 4px;
-        background: #5b5ce2;
-        color: white;
-        box-shadow: 0 4px 12px rgba(91, 92, 226, 0.22);
-      }
-      .sender-name {
-        display: block;
-        margin-bottom: 3px;
-        font-size: 0.72rem;
-        font-weight: 800;
-        opacity: 0.75;
-      }
-      .message-meta {
-        display: block;
-        margin-top: 4px;
-        opacity: 0.68;
-        font-size: 0.68rem;
-        text-align: right;
-      }
-      .empty-state {
-        margin: 25% auto;
-        color: #788198;
-        text-align: center;
-        font-size: 0.9rem;
-      }
-      .composer {
-        display: flex;
-        gap: 10px;
-        padding: 14px clamp(14px, 3vw, 20px);
-        border-top: 1px solid #eceef5;
-        background: #fff;
-      }
-      #messageInput {
-        width: 100%;
-        min-width: 0;
-        padding: 12px 15px;
-        border: 1px solid #d7dbea;
-        border-radius: 12px;
-        outline: none;
-        color: #182033;
-      }
-      #messageInput:focus {
-        border-color: #5b5ce2;
-        box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.13);
-      }
-      #sendButton {
-        border: 0;
-        border-radius: 12px;
-        padding: 0 19px;
-        background: #5b5ce2;
-        color: #fff;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      #sendButton:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
-      }
-      .identity-screen {
-        position: fixed;
-        inset: 0;
-        z-index: 2;
-        display: grid;
-        place-items: center;
-        padding: 20px;
-        background: rgba(238, 240, 248, 0.9);
-        backdrop-filter: blur(5px);
-      }
-      .identity-screen[hidden] { display: none !important; }
-      .identity-card {
-        width: min(100%, 380px);
-        padding: 28px;
-        border-radius: 20px;
-        background: white;
-        box-shadow: 0 18px 55px rgba(31, 42, 85, 0.2);
-        text-align: center;
-      }
-      .identity-card h2 {
-        margin: 0 0 8px;
-      }
-      .identity-card p {
-        margin: 0 0 20px;
-        color: #69728b;
-        font-size: 0.9rem;
-      }
-      .identity-card input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #d7dbea;
-        border-radius: 10px;
-        outline: none;
-      }
-      .identity-card button {
-        width: 100%;
-        margin-top: 10px;
-        padding: 12px;
-        border: 0;
-        border-radius: 10px;
-        background: #5b5ce2;
-        color: #fff;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .form-error {
-        min-height: 18px;
-        margin: 8px 0 0;
-        color: #be3545;
-        font-size: 0.8rem;
-      }
-      @media (max-width: 560px) {
-        body {
-          padding: 0;
-        }
-        .chat-app {
-          width: 100%;
-          height: 100dvh;
-          min-height: 0;
-          border: 0;
-          border-radius: 0;
-          box-shadow: none;
-        }
-        .message-bubble {
-          max-width: 86%;
-        }
-        #sendButton {
-          padding: 0 15px;
-        }
-      }
-    </style>
+    <title>Zuno Chat | Private messaging</title>
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
-    <section
-      id="identityScreen"
-      class="identity-screen"
+    <section id="identityScreen" class="overlay"
       aria-label="Choose your username">
-      <form id="identityForm" class="identity-card">
-        <h2>Welcome to Zuno</h2>
-        <p>Choose the name other chat members will see.</p>
-        <input
-          id="usernameInput"
-          maxlength="30"
-          autocomplete="nickname"
-          placeholder="Your username"
-          required />
-        <button type="submit">Join chat</button>
-        <p id="identityError" class="form-error" role="alert"></p>
-      </form>
+      <form id="identityForm" class="card"><h2>Welcome to Zuno</h2><p>Choose the
+          name your chat partner will see.</p><input id="usernameInput"
+          maxlength="30" autocomplete="nickname" placeholder="Your username"
+          required><button type="submit">Continue</button><p id="identityError"
+          class="form-error" role="alert"></p></form>
     </section>
-    <main class="chat-app" aria-label="Zuno chat">
-      <header class="chat-header">
-        <div class="avatar" aria-hidden="true">Z</div>
-        <div>
-          <h1 class="chat-title">Zuno Chat</h1>
-          <p class="chat-status">
-            <span class="status-dot">●</span> Shared conversation
-          </p>
-        </div>
-        <div class="header-actions">
-          <button id="clearButton" class="clear-button" type="button">
-            Clear my chat
-          </button>
-        </div>
-      </header>
-      <ul
-        id="messages"
-        class="messages"
-        aria-live="polite"
+    <section id="roomScreen" class="overlay" hidden
+      aria-label="Private room options">
+      <div class="card"><h2>Private chat room</h2><p>Create a room and share its
+          link with one person, or enter the room ID you received.</p><button
+          id="createRoomButton" type="button">Create private room</button><div
+          class="divider">or</div><form id="roomForm" class="join-row"><input
+            id="roomInput" maxlength="8" autocomplete="off"
+            placeholder="Room ID" required><button
+            type="submit">Join</button></form><p id="roomError"
+          class="form-error" role="alert"></p></div>
+    </section>
+    <main class="chat-app" aria-label="Zuno private chat">
+      <header class="chat-header"><div class="avatar"
+          aria-hidden="true">Z</div><div><h1>Zuno Chat</h1><p><span>●</span>
+            Private room <strong id="roomCode">—</strong></p></div><div
+          class="header-actions"><button id="shareRoomButton" type="button"
+            hidden>Copy invite</button><button id="endRoomButton" type="button"
+            hidden>End room</button><button id="clearButton"
+            type="button">Clear my chat</button></div></header>
+      <ul id="messages" class="messages" aria-live="polite"
         aria-label="Messages"></ul>
-      <form id="messageForm" class="composer">
-        <input
-          type="text"
-          id="messageInput"
-          placeholder="Write a message..."
-          autocomplete="off"
-          aria-label="Message"
-          maxlength="2000"
-          disabled /><button id="sendButton" type="submit"
-          disabled>Send</button>
-      </form>
+      <form id="messageForm" class="composer"><div class="emoji-wrap"><button
+            id="emojiButton" class="emoji-button" type="button"
+            aria-label="Add emoji" aria-expanded="false">😊</button><div
+            id="emojiPicker" class="emoji-picker" hidden
+            aria-label="Emoji picker"></div></div><input id="messageInput"
+          type="text" maxlength="2000" autocomplete="off"
+          placeholder="Write a message..." aria-label="Message" disabled><button
+          id="sendButton" type="submit" disabled>Send</button></form>
     </main>
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-      const socket = io();
-      const messageInput = document.getElementById("messageInput");
-      const messageForm = document.getElementById("messageForm");
-      const messagesList = document.getElementById("messages");
-      const sendButton = document.getElementById("sendButton");
-      const identityScreen = document.getElementById("identityScreen");
-      const identityForm = document.getElementById("identityForm");
-      const usernameInput = document.getElementById("usernameInput");
-      const identityError = document.getElementById("identityError");
-      const clearButton = document.getElementById("clearButton");
-      let username = "";
-      const messageElements = new Map();
-      usernameInput.value = localStorage.getItem("zuno-username") || "";
-
-      function timeLabel(value) {
-        return new Date(value).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-      function showEmptyState() {
-        if (!messagesList.children.length)
-          messagesList.innerHTML =
-            '<li class="empty-state">No messages yet. Say hello!</li>';
-      }
-      function addMessage(message) {
-        document.querySelector(".empty-state")?.remove();
-        if (messageElements.has(message.id)) return;
-        const mine = message.senderName === username;
-        const item = document.createElement("li");
-        item.className = `message-row ${mine ? "sent" : "received"}`;
-        item.dataset.id = message.id;
-        const bubble = document.createElement("div");
-        bubble.className = "message-bubble";
-        if (!mine) {
-          const sender = document.createElement("span");
-          sender.className = "sender-name";
-          sender.textContent = message.senderName;
-          bubble.appendChild(sender);
-        }
-        const content = document.createElement("span");
-        content.textContent = message.text;
-        bubble.appendChild(content);
-        const meta = document.createElement("time");
-        meta.className = "message-meta";
-        meta.dataset.meta = "true";
-        meta.textContent = mine
-          ? receiptText(message)
-          : timeLabel(message.createdAt);
-        bubble.appendChild(meta);
-        item.appendChild(bubble);
-        messagesList.appendChild(item);
-        messageElements.set(message.id, { item, message });
-        messagesList.scrollTop = messagesList.scrollHeight;
-        if (!mine) socket.emit("mark-seen", [message.id]);
-      }
-      function receiptText(message) {
-        const readers = (message.seenBy || []).filter(
-          (entry) => entry.username !== username,
-        );
-        return `${timeLabel(message.createdAt)} · ${readers.length ? "Seen" : "Sent"}`;
-      }
-      function refreshReceipt(id) {
-        const stored = messageElements.get(id);
-        if (!stored || stored.message.senderName !== username) return;
-        stored.item.querySelector("[data-meta]").textContent = receiptText(
-          stored.message,
-        );
-      }
-      function clearRenderedMessages() {
-        messagesList.replaceChildren();
-        messageElements.clear();
-        showEmptyState();
-      }
-
-      identityForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        identityError.textContent = "";
-        const requestedName = usernameInput.value.trim();
-        if (!socket.connected) {
-          identityError.textContent =
-            "Connecting to the chat server… please try again in a moment.";
-          return;
-        }
-        const joinButton = identityForm.querySelector("button");
-        joinButton.disabled = true;
-        const joinTimeout = setTimeout(() => {
-          joinButton.disabled = false;
-          identityError.textContent =
-            "The server did not respond. Restart the chat server and try again.";
-        }, 5000);
-        socket.emit("register-user", requestedName, (result) => {
-          clearTimeout(joinTimeout);
-          joinButton.disabled = false;
-          if (!result?.ok) {
-            identityError.textContent = result?.error || "Unable to join chat.";
-            return;
-          }
-          username = result.username;
-          localStorage.setItem("zuno-username", username);
-          clearRenderedMessages();
-          result.messages.forEach(addMessage);
-          identityScreen.hidden = true;
-          messageInput.disabled = false;
-          sendButton.disabled = false;
-          messageInput.focus();
-          showEmptyState();
-        });
-      });
-      socket.on("message", addMessage);
-      socket.on("messages-seen", ({ messageIds, username: reader }) => {
-        messageIds.forEach((id) => {
-          const stored = messageElements.get(id);
-          if (
-            !stored ||
-            stored.message.seenBy.some((entry) => entry.username === reader)
-          )
-            return;
-          stored.message.seenBy.push({ username: reader });
-          refreshReceipt(id);
-        });
-      });
-      messageForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const message = messageInput.value.trim();
-        if (!message) return;
-        sendButton.disabled = true;
-        socket.emit("chat-message", message, (result) => {
-          sendButton.disabled = false;
-          if (result?.ok) {
-            messageInput.value = "";
-            messageInput.focus();
-          }
-        });
-      });
-      clearButton.addEventListener("click", () => {
-        if (
-          !username ||
-          !confirm(
-            "Clear this chat from your view? Other users will keep their messages.",
-          )
-        )
-          return;
-        socket.emit("clear-chat", (result) => {
-          if (result?.ok) clearRenderedMessages();
-          else alert(result?.error || "Could not clear chat.");
-        });
-      });
-      socket.on("connect", () => {
-        if (username && identityScreen.hidden) identityScreen.hidden = false;
-      });
-    </script>
+    <script src="/js/chat.js"></script>
   </body>
 </html>
