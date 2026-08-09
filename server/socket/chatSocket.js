@@ -26,7 +26,7 @@ const serializeMessage = (message) => ({
 async function enterRoom(io, socket, room) {
   const { username } = socket.data;
   const isMember = room.members.includes(username);
-
+  console.log("room.members", room.members, "username", username, "isMember", isMember);
   // Limit private rooms to 3 members
   if (!isMember && room.members.length >= 3)
     return { ok: false, error: "This private room already has three members." };
@@ -184,13 +184,49 @@ export function registerChatSocket(io) {
         callback?.({ ok: false, error: "Could not clear your chat." });
       }
     });
+    socket.on("leave-room", async (callback) => {
+      const { username, roomId } = socket.data;
+      if (!username || !roomId)
+        return callback?.({ ok: false, error: "Join a room first." });
+      try {
+        const room = await Room.findOne({ _id: roomId, members: username });
+        if (!room)
+          return callback?.({
+            ok: false,
+            error: "This room no longer exists.",
+          });
+
+        room.members = room.members.filter((member) => member !== username);
+        await room.save();
+
+        const remainingCount = room.members.length;
+        socket.leave(roomId);
+        socket.data.roomId = undefined;
+
+        if (remainingCount > 0) {
+          io.to(roomId).emit("member-left", {
+            username,
+            memberCount: remainingCount,
+          });
+        }
+
+        callback?.({ ok: true });
+      } catch (error) {
+        console.error("Could not leave room:", error.message);
+        callback?.({ ok: false, error: "Could not leave this room." });
+      }
+    });
     socket.on("end-room", async (callback) => {
       const { username, roomId } = socket.data;
       if (!username || !roomId)
         return callback?.({ ok: false, error: "Join a room first." });
       try {
         const room = await Room.findOne({ _id: roomId, members: username });
-        if (!room) return callback?.({ ok: false, error: "This room no longer exists." });
+        if (!room)
+          return callback?.({
+            ok: false,
+            error: "This room no longer exists.",
+          });
 
         const roomSockets = await io.in(roomId).fetchSockets();
         await Promise.all([

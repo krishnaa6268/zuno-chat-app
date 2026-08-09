@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import statusMonitor from "express-status-monitor";
 import http from "http";
 import { Server } from "socket.io";
 import path from "path";
@@ -15,12 +14,6 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.resolve("./public")));
-
-app.use(
-  statusMonitor({
-    websocket: io, // latest version of express-status-monitor supports passing the socket.io instance
-  }),
-);
 
 app.get("/", (req, res) => res.sendFile(path.resolve("./public/index.html")));
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));

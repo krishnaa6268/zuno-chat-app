@@ -21,6 +21,7 @@ const messageInput = $("messageInput"),
   roomCodeElement = $("roomCode"),
   clearButton = $("clearButton"),
   endRoomButton = $("endRoomButton"),
+  leaveRoomButton = $("leaveRoomButton"),
   shareRoomButton = $("shareRoomButton"),
   emojiButton = $("emojiButton"),
   emojiPicker = $("emojiPicker");
@@ -131,6 +132,7 @@ function showRoom(result, created) {
   sendButton.disabled = false;
   shareRoomButton.hidden = !created;
   endRoomButton.hidden = false;
+  leaveRoomButton.hidden = false;
   messageInput.focus();
 }
 function roomRequest(eventName, code, created = false) {
@@ -178,6 +180,29 @@ createRoomButton.addEventListener("click", () =>
 roomForm.addEventListener("submit", (event) => {
   event.preventDefault();
   roomRequest("join-room", roomInput.value);
+});
+leaveRoomButton.addEventListener("click", () => {
+  if (
+    !confirm(
+      "Leave this private room? You can rejoin later with the same room ID if not full",
+    )
+  )
+    return;
+  socket.emit("leave-room", (result) => {
+    if (!result?.ok) return alert(result?.error || "Could not leave the room.");
+    currentRoomCode = "";
+    localStorage.removeItem("zuno-room-code");
+    history.replaceState({}, "", location.pathname);
+    clearRenderedMessages();
+    roomCodeElement.textContent = "—";
+    messageInput.disabled = true;
+    sendButton.disabled = true;
+    shareRoomButton.hidden = true;
+    endRoomButton.hidden = true;
+    leaveRoomButton.hidden = true;
+    roomError.textContent = "You left the room. Create or join another room.";
+    roomScreen.hidden = false;
+  });
 });
 emojiButton.addEventListener("click", () => {
   emojiPicker.hidden = !emojiPicker.hidden;
@@ -259,8 +284,13 @@ socket.on("room-ended", () => {
   sendButton.disabled = true;
   shareRoomButton.hidden = true;
   endRoomButton.hidden = true;
+  leaveRoomButton.hidden = true;
   roomError.textContent = "This room has ended. Create or join another room.";
   roomScreen.hidden = false;
+});
+socket.on("member-left", ({ username: leftUsername, memberCount }) => {
+  if (leftUsername === username) return;
+  roomError.textContent = `${leftUsername} left the room. ${memberCount} participant remains.`;
 });
 socket.on("connect", () => {
   if (restoreAttempted) return;
