@@ -3,43 +3,193 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#5b5ce2">
     <title>Zuno Chat | Real-time Messaging</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #eef0f8;
+        color: #182033;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        min-height: 100dvh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .chat-app {
+        width: min(100%, 760px);
+        height: min(760px, calc(100dvh - 40px));
+        min-height: 420px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        overflow: hidden;
+        border: 1px solid #dfe2ef;
+        border-radius: 24px;
+        background: #fff;
+        box-shadow: 0 20px 60px rgba(31, 42, 85, .14);
+      }
+
+      .chat-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 17px 20px;
+        border-bottom: 1px solid #eceef5;
+      }
+
+      .avatar {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        flex: none;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7879f1, #4849bd);
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .chat-title { margin: 0; font-size: 1rem; }
+      .chat-status { margin: 3px 0 0; color: #6e7790; font-size: .78rem; }
+      .status-dot { color: #29b774; font-size: 1.1em; }
+
+      .messages {
+        min-height: 0;
+        margin: 0;
+        padding: 22px clamp(14px, 4vw, 28px);
+        overflow-y: auto;
+        list-style: none;
+        background: linear-gradient(#fafbff, #f4f6fc);
+      }
+
+      .message-row {
+        display: flex;
+        margin: 0 0 14px;
+      }
+
+      .message-row.sent { justify-content: flex-end; }
+      .message-row.received { justify-content: flex-start; }
+
+      .message-bubble {
+        max-width: min(78%, 500px);
+        padding: 10px 13px 8px;
+        border-radius: 18px;
+        overflow-wrap: anywhere;
+        line-height: 1.4;
+        font-size: .95rem;
+      }
+
+      .received .message-bubble {
+        border-bottom-left-radius: 4px;
+        background: #e5e8f2;
+        color: #252c3e;
+      }
+
+      .sent .message-bubble {
+        border-bottom-right-radius: 4px;
+        background: #5b5ce2;
+        color: white;
+        box-shadow: 0 4px 12px rgba(91, 92, 226, .22);
+      }
+
+      .message-meta {
+        display: block;
+        margin-top: 4px;
+        color: inherit;
+        opacity: .68;
+        font-size: .68rem;
+        text-align: right;
+      }
+
+      .composer {
+        display: flex;
+        gap: 10px;
+        padding: 14px clamp(14px, 3vw, 20px);
+        border-top: 1px solid #eceef5;
+        background: #fff;
+      }
+
+      #messageInput {
+        width: 100%;
+        min-width: 0;
+        padding: 12px 15px;
+        border: 1px solid #d7dbea;
+        border-radius: 12px;
+        outline: none;
+        color: #182033;
+        font: inherit;
+      }
+
+      #messageInput:focus { border-color: #5b5ce2; box-shadow: 0 0 0 3px rgba(91, 92, 226, .13); }
+      #sendButton { border: 0; border-radius: 12px; padding: 0 19px; background: #5b5ce2; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+      #sendButton:hover { background: #4d4ec9; }
+
+      @media (max-width: 560px) {
+        body { padding: 0; }
+        .chat-app { width: 100%; height: 100dvh; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+        .message-bubble { max-width: 86%; }
+        #sendButton { padding: 0 15px; }
+      }
+    </style>
   </head>
   <body>
-    <h1>Welcome to Zuno Chat!</h1>
-    <p>Experience real-time messaging with our chat application.</p>
+    <main class="chat-app" aria-label="Zuno chat">
+      <header class="chat-header">
+        <div class="avatar" aria-hidden="true">Z</div>
+        <div>
+          <h1 class="chat-title">Zuno Chat</h1>
+          <p class="chat-status"><span class="status-dot">●</span> Real-time conversation</p>
+        </div>
+      </header>
 
-    <input type="text" id="messageInput"
-      placeholder="Type your message here..." />
-    <button id="sendButton">Send</button>
+      <ul id="messages" class="messages" aria-live="polite" aria-label="Messages"></ul>
 
-    <ul id="messages"></ul>
+      <form id="messageForm" class="composer">
+        <input type="text" id="messageInput" placeholder="Write a message..." autocomplete="off" aria-label="Message" maxlength="2000">
+        <button id="sendButton" type="submit">Send</button>
+      </form>
+    </main>
 
-    <!-- "const io = new Server(server)" automatically serves the Socket.IO client library at "/socket.io/socket.io.js" from your backend server. -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
       const socket = io();
       const messageInput = document.getElementById("messageInput");
-      const sendButton = document.getElementById("sendButton");
+      const messageForm = document.getElementById("messageForm");
       const messagesList = document.getElementById("messages");
 
-      socket.on("message", (message) => {
-        const p = document.createElement("p");
-        p.innerHTML = message;
-        messagesList.appendChild(p);
+      socket.on("message", ({ text, senderId }) => {
+        const isMine = senderId === socket.id;
+        const item = document.createElement("li");
+        item.className = `message-row ${isMine ? "sent" : "received"}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble";
+        bubble.textContent = text;
+
+        const meta = document.createElement("time");
+        meta.className = "message-meta";
+        meta.textContent = isMine ? "You · now" : "Received · now";
+        bubble.appendChild(meta);
+        item.appendChild(bubble);
+        messagesList.appendChild(item);
+        messagesList.scrollTop = messagesList.scrollHeight;
       });
 
-      // send message to server when button is clicked
-      sendButton.addEventListener("click",()=>{
-        const message = messageInput.value;
-        console.log("Sending message from", socket.id, ":", message);
-
-        if (message.trim() !== "") {
-          socket.emit("chat-message", message);
-          messageInput.value = "";
-        }
-      })
-
+      messageForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message) return;
+        socket.emit("chat-message", message);
+        messageInput.value = "";
+        messageInput.focus();
+      });
     </script>
   </body>
 </html>

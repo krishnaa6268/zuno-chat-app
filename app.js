@@ -26,7 +26,7 @@ io.on("connection", (socket) => {
   socket.on("chat-message", (message) => {
     console.log("Received message from", socket.id, ":", message);
 
-    io.emit("message", message); //broadcast to all clients including sender - (see received message from other users and self)
+    io.emit("message", { text: message, senderId: socket.id });
 
     // socket.broadcast.emit("message", message); //broadcast to all clients except sender - (only see received message from other users)
   });
