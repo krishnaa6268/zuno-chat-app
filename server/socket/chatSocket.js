@@ -26,8 +26,10 @@ const serializeMessage = (message) => ({
 async function enterRoom(io, socket, room) {
   const { username } = socket.data;
   const isMember = room.members.includes(username);
-  if (!isMember && room.members.length >= 2)
-    return { ok: false, error: "This private room already has two members." };
+
+  // Limit private rooms to 3 members
+  if (!isMember && room.members.length >= 3)
+    return { ok: false, error: "This private room already has three members." };
   if (!isMember) {
     room.members.push(username);
     await room.save();

@@ -1,4 +1,9 @@
-const socket = io();
+const socket = io({
+  path: "/socket.io",
+  transports: ["polling", "websocket"],
+  reconnectionAttempts: 5,
+  timeout: 10000,
+});
 const $ = (id) => document.getElementById(id);
 const messageInput = $("messageInput"),
   messageForm = $("messageForm"),
@@ -80,7 +85,8 @@ function receiptText(message) {
   const readers = (message.seenBy || []).filter(
     (entry) => entry.username !== username,
   );
-  return `${timeLabel(message.createdAt)} · ${readers.length ? "Seen" : "Sent"}`;
+  console.log("readers", readers);
+  return `${timeLabel(message.createdAt)} · ${readers.length ? "Total Seen: " + readers.length : "Sent"}`;
 }
 function addMessage(message) {
   document.querySelector(".empty-state")?.remove();
@@ -156,8 +162,11 @@ identityForm.addEventListener("submit", (event) => {
     const savedRoomCode =
       new URLSearchParams(location.search).get("room") ||
       localStorage.getItem("zuno-room-code");
-    if (savedRoomCode) roomRequest("join-room", savedRoomCode);
-    else {
+    if (savedRoomCode) {
+      roomScreen.hidden = false;
+      roomError.textContent = "Rejoining your room...";
+      roomRequest("join-room", savedRoomCode);
+    } else {
       roomScreen.hidden = false;
       roomInput.focus();
     }
@@ -265,8 +274,29 @@ socket.on("connect", () => {
     if (!result?.ok) return;
     username = result.username;
     identityScreen.hidden = true;
+    roomScreen.hidden = false;
+    roomError.textContent = "Rejoining your room...";
     roomRequest("join-room", savedRoomCode);
   });
+});
+socket.on("connect_error", (error) => {
+  console.error("Socket connect error:", error);
+  if (!identityScreen.hidden) {
+    identityError.textContent =
+      "Unable to reach the chat server. Refresh and try again.";
+  } else {
+    roomError.textContent =
+      "Unable to reach the chat server. Refresh and try again.";
+  }
+});
+socket.on("reconnect_failed", () => {
+  if (!identityScreen.hidden) {
+    identityError.textContent =
+      "Could not reconnect to the chat server. Refresh and try again.";
+  } else {
+    roomError.textContent =
+      "Could not reconnect to the chat server. Refresh and try again.";
+  }
 });
 shareRoomButton.addEventListener("click", async () => {
   const url = `${location.origin}${location.pathname}?room=${currentRoomCode}`;
